@@ -796,6 +796,112 @@
   margin: 0 8px;
 }
 
+#sidebar .current-database span.create-table {
+  position: absolute;
+  top: 0px;
+  right: 26px;
+  cursor: pointer;
+  color: #fff;
+  display: none;
+}
+
+#sidebar .current-database:hover span.create-table {
+  display: inline-block;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Create table */
+/* -------------------------------------------------------------------------- */
+
+#create_table_modal {
+  display: none;
+  width: 80%;
+  max-width: 900px;
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #ccc;
+  box-shadow: #ddd 0 0 20px;
+  z-index: 10000;
+}
+
+#create_table_modal .title {
+  font-weight: bold;
+  line-height: 24px;
+  background: #f5f5f5;
+  padding: 4px 4px 4px 8px;
+}
+
+#create_table_modal .actions {
+  float: right;
+}
+
+#create_table_modal .actions .fa {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 13px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#create_table_modal .create-table-meta {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+}
+
+#create_table_modal .create-table-meta input {
+  flex: 1;
+}
+
+.create-table-columns {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 8px;
+}
+
+.create-table-columns th,
+.create-table-columns td {
+  padding: 3px 6px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+}
+
+.create-table-columns th {
+  text-align: left;
+  color: #888;
+  font-weight: 500;
+}
+
+.create-table-columns .col-remove {
+  cursor: pointer;
+  color: #bbb;
+}
+
+.create-table-columns .col-remove:hover {
+  color: #d9534f;
+}
+
+#create_table_modal .add-column {
+  margin: 0 8px 8px;
+}
+
+#create_table_modal .create-table-error {
+  margin: 0 8px;
+}
+
+#create_table_modal .create-table-buttons {
+  padding: 8px;
+  border-top: 1px solid #eee;
+  text-align: right;
+}
+
 #error_banner {
   line-height: 30px;
   text-align: center;

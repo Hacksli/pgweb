@@ -1755,6 +1755,102 @@ function saveRowEditor() {
   }
 }
 
+// --- Create table ---
+
+function createTableColumnRow() {
+  return $(
+    "<tr class='column-row'>" +
+      "<td><input type='text' class='form-control col-name' /></td>" +
+      "<td><input type='text' class='form-control col-type' list='column_types_list' value='text' /></td>" +
+      "<td class='text-center'><input type='checkbox' class='col-notnull' /></td>" +
+      "<td class='text-center'><input type='checkbox' class='col-pk' /></td>" +
+      "<td><input type='text' class='form-control col-default' /></td>" +
+      "<td class='text-center'><i class='fa fa-trash-o col-remove'></i></td>" +
+    "</tr>"
+  );
+}
+
+function openCreateTable() {
+  $("#create_table_schema").val("public");
+  $("#create_table_name").val("");
+  $("#create_table_modal .create-table-error").hide().text("");
+
+  $("#create_table_modal .create-table-columns tbody").html("").append(createTableColumnRow());
+
+  $("#create_table_modal").show();
+  $("#create_table_name").focus();
+}
+
+function quoteIdent(name) {
+  return '"' + String(name).replace(/"/g, '""') + '"';
+}
+
+function buildCreateTableSQL() {
+  var schema = $.trim($("#create_table_schema").val()) || "public";
+  var name   = $.trim($("#create_table_name").val());
+
+  if (!name) {
+    throw new Error(t("Table name is required"));
+  }
+
+  var defs = [];
+  var pks  = [];
+
+  $("#create_table_modal .column-row").each(function() {
+    var cname = $.trim($(this).find(".col-name").val());
+    if (!cname) return;
+
+    var ctype = $.trim($(this).find(".col-type").val()) || "text";
+    var def   = quoteIdent(cname) + " " + ctype;
+
+    if ($(this).find(".col-notnull").is(":checked")) {
+      def += " NOT NULL";
+    }
+
+    var defVal = $.trim($(this).find(".col-default").val());
+    if (defVal) {
+      def += " DEFAULT " + defVal;
+    }
+
+    defs.push(def);
+
+    if ($(this).find(".col-pk").is(":checked")) {
+      pks.push(quoteIdent(cname));
+    }
+  });
+
+  if (defs.length == 0) {
+    throw new Error(t("Add at least one named column"));
+  }
+
+  if (pks.length > 0) {
+    defs.push("PRIMARY KEY (" + pks.join(", ") + ")");
+  }
+
+  return "CREATE TABLE " + quoteIdent(schema) + "." + quoteIdent(name) +
+    " (\n  " + defs.join(",\n  ") + "\n)";
+}
+
+function submitCreateTable() {
+  var sql;
+  try {
+    sql = buildCreateTableSQL();
+  }
+  catch (err) {
+    $("#create_table_modal .create-table-error").text(err.message).show();
+    return;
+  }
+
+  executeQuery(sql, function(data) {
+    if (data.error) {
+      $("#create_table_modal .create-table-error").text(data.error).show();
+      return;
+    }
+    $("#create_table_modal").hide();
+    loadSchemas();
+  });
+}
+
 $(document).ready(function() {
   bindInputResizeEvents();
   bindContentModalEvents();
@@ -1900,6 +1996,29 @@ $(document).ready(function() {
 
   $("#refresh_tables").on("click", function() {
     loadSchemas();
+  });
+
+  $("#create_table_btn").on("click", function() {
+    openCreateTable();
+  });
+
+  $("#create_table_modal").on("click", ".add-column", function() {
+    $("#create_table_modal .create-table-columns tbody").append(createTableColumnRow());
+  });
+
+  $("#create_table_modal").on("click", ".col-remove", function() {
+    if ($("#create_table_modal .column-row").length > 1) {
+      $(this).closest(".column-row").remove();
+    }
+  });
+
+  $("#create_table_modal").on("click", ".create-table-cancel, .create-table-close", function() {
+    $("#create_table_modal").hide();
+  });
+
+  $("#create_table_form").on("submit", function(e) {
+    e.preventDefault();
+    submitCreateTable();
   });
 
   $("#rows_filter").on("submit", function(e) {

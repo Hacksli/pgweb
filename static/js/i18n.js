@@ -73,6 +73,19 @@ var I18n = (function() {
       "This table has no primary key, rows cannot be edited.":
         "Ця таблиця не має первинного ключа, рядки не можна редагувати.",
 
+      // --- Create table ---
+      "Create table":   "Створити таблицю",
+      "Add column":     "Додати стовпець",
+      "Create":         "Створити",
+      "Column":         "Стовпець",
+      "Type":           "Тип",
+      "Default":        "За замовчуванням",
+      "schema":         "схема",
+      "table name":     "назва таблиці",
+      "Table name is required": "Потрібна назва таблиці",
+      "Add at least one named column":
+        "Додайте принаймні один іменований стовпець",
+
       // --- Connection window ---
       "Scheme":                  "Схема",
       "Standard":                "Стандартне",
