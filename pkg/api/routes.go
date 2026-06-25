@@ -12,6 +12,12 @@ func SetupMiddlewares(group *gin.RouterGroup) {
 		group.Use(corsMiddleware())
 	}
 
+	// Allow API clients to authenticate with an access token instead of the
+	// browser session flow (only meaningful when sessions are enabled).
+	if command.Opts.Sessions {
+		group.Use(tokenAuthMiddleware())
+	}
+
 	group.Use(dbCheckMiddleware())
 }
 
@@ -25,6 +31,11 @@ func SetupRoutes(router *gin.Engine) {
 
 	api := root.Group("/api")
 	SetupMiddlewares(api)
+
+	// Answer CORS preflight requests for any API route
+	api.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(204)
+	})
 
 	if command.Opts.Sessions {
 		api.GET("/sessions", GetSessions)
