@@ -159,55 +159,57 @@
     <pre class="content"></pre>
   </div>
 
-  <div id="row_editor_modal">
-    <div class="title">
-      <span class="row-editor-title" data-i18n="Edit row">Edit row</span>
-      <div class="actions">
-        <i class="fa fa-times row-editor-close" data-action="close"></i>
-      </div>
+  <div id="modal_overlay"></div>
+
+  <div id="row_editor_modal" class="pg-modal">
+    <div class="pg-modal-header">
+      <span class="pg-modal-title"><i class="fa fa-pencil"></i><span class="row-editor-title" data-i18n="Edit row">Edit row</span></span>
+      <i class="fa fa-times pg-modal-close row-editor-close"></i>
     </div>
     <form id="row_editor_form">
-      <div class="row-editor-fields"></div>
-      <div class="row-editor-error alert alert-danger" style="display: none"></div>
-      <div class="row-editor-buttons">
-        <button type="submit" class="btn btn-sm btn-primary row-editor-save" data-i18n="Save">Save</button>
+      <div class="pg-modal-body">
+        <div class="row-editor-fields"></div>
+        <div class="row-editor-error alert alert-danger" style="display: none"></div>
+      </div>
+      <div class="pg-modal-footer">
         <button type="button" class="btn btn-sm btn-default row-editor-cancel" data-i18n="Cancel">Cancel</button>
+        <button type="submit" class="btn btn-sm btn-primary row-editor-save" data-i18n="Save">Save</button>
       </div>
     </form>
   </div>
 
-  <div id="create_table_modal">
-    <div class="title">
-      <span data-i18n="Create table">Create table</span>
-      <div class="actions">
-        <i class="fa fa-times create-table-close" data-action="close"></i>
-      </div>
+  <div id="create_table_modal" class="pg-modal pg-modal-lg">
+    <div class="pg-modal-header">
+      <span class="pg-modal-title"><i class="fa fa-table"></i><span data-i18n="Create table">Create table</span></span>
+      <i class="fa fa-times pg-modal-close create-table-close"></i>
     </div>
-    <form id="create_table_form">
+    <div class="pg-modal-body">
       <div class="create-table-meta">
-        <input type="text" id="create_table_schema" class="form-control" value="public" placeholder="schema" data-i18n-placeholder="schema" />
-        <input type="text" id="create_table_name" class="form-control" placeholder="table name" data-i18n-placeholder="table name" />
+        <div class="field">
+          <label data-i18n="Schema">Schema</label>
+          <input type="text" id="create_table_schema" value="public" />
+        </div>
+        <div class="field grow">
+          <label data-i18n="Table name">Table name</label>
+          <input type="text" id="create_table_name" placeholder="my_table" />
+        </div>
       </div>
-      <table class="create-table-columns">
-        <thead>
-          <tr>
-            <th data-i18n="Column">Column</th>
-            <th data-i18n="Type">Type</th>
-            <th class="text-center" title="NOT NULL">NN</th>
-            <th class="text-center" title="PRIMARY KEY">PK</th>
-            <th data-i18n="Default">Default</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+
+      <div class="create-table-section-label" data-i18n="Columns">Columns</div>
+      <div class="create-table-columns"></div>
       <button type="button" class="btn btn-xs btn-default add-column"><i class="fa fa-plus"></i> <span data-i18n="Add column">Add column</span></button>
-      <div class="create-table-error alert alert-danger" style="display: none"></div>
-      <div class="create-table-buttons">
-        <button type="submit" class="btn btn-sm btn-primary" data-i18n="Create">Create</button>
-        <button type="button" class="btn btn-sm btn-default create-table-cancel" data-i18n="Cancel">Cancel</button>
+
+      <div class="create-table-preview">
+        <div class="preview-label"><i class="fa fa-code"></i><span data-i18n="SQL preview">SQL preview</span></div>
+        <pre class="preview-sql"></pre>
       </div>
-    </form>
+
+      <div class="create-table-error alert alert-danger" style="display: none"></div>
+    </div>
+    <div class="pg-modal-footer">
+      <button type="button" class="btn btn-sm btn-default create-table-cancel" data-i18n="Cancel">Cancel</button>
+      <button type="button" class="btn btn-sm btn-primary create-table-submit" data-i18n="Create">Create</button>
+    </div>
     <datalist id="column_types_list">
       <option value="integer"></option>
       <option value="bigint"></option>

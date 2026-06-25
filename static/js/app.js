@@ -1660,7 +1660,7 @@ function openRowEditor(mode, rowIndex) {
   rowEditorIndex = (rowIndex == null) ? null : rowIndex;
 
   var titleKey = mode == "add" ? "Add row" : (mode == "duplicate" ? "Duplicate row" : "Edit row");
-  $("#row_editor_modal .row-editor-title").text(t(titleKey));
+  $("#row_editor_modal .row-editor-title").text(t(titleKey) + " · " + currentTableName);
   $("#row_editor_modal .row-editor-error").hide().text("");
 
   var row = (rowIndex != null) ? currentTableRows[rowIndex] : null;
@@ -1706,7 +1706,7 @@ function openRowEditor(mode, rowIndex) {
     fields.append(field);
   });
 
-  $("#row_editor_modal").show();
+  showModal("#row_editor_modal");
   $("#row_editor_modal textarea").first().focus();
 }
 
@@ -1744,7 +1744,7 @@ function saveRowEditor() {
       return;
     }
 
-    $("#row_editor_modal").hide();
+    hideModal("#row_editor_modal");
     showPaginatedTableContent();
   };
 
@@ -1755,18 +1755,32 @@ function saveRowEditor() {
   }
 }
 
+// --- Modal helpers (overlay + open/close) ---
+
+function showModal(id) {
+  $("#modal_overlay").show();
+  $(id).addClass("pg-open");
+}
+
+function hideModal(id) {
+  $(id).removeClass("pg-open");
+  if ($(".pg-modal.pg-open").length === 0) {
+    $("#modal_overlay").hide();
+  }
+}
+
 // --- Create table ---
 
 function createTableColumnRow() {
   return $(
-    "<tr class='column-row'>" +
-      "<td><input type='text' class='form-control col-name' /></td>" +
-      "<td><input type='text' class='form-control col-type' list='column_types_list' value='text' /></td>" +
-      "<td class='text-center'><input type='checkbox' class='col-notnull' /></td>" +
-      "<td class='text-center'><input type='checkbox' class='col-pk' /></td>" +
-      "<td><input type='text' class='form-control col-default' /></td>" +
-      "<td class='text-center'><i class='fa fa-trash-o col-remove'></i></td>" +
-    "</tr>"
+    "<div class='column-row'>" +
+      "<input type='text' class='col-name' placeholder='column_name' />" +
+      "<input type='text' class='col-type' list='column_types_list' value='text' />" +
+      "<input type='text' class='col-default' placeholder='default' />" +
+      "<button type='button' class='col-pill col-pk' title='PRIMARY KEY'>PK</button>" +
+      "<button type='button' class='col-pill col-notnull' title='NOT NULL'>NN</button>" +
+      "<i class='fa fa-times col-remove' title='Remove column'></i>" +
+    "</div>"
   );
 }
 
@@ -1775,78 +1789,92 @@ function openCreateTable() {
   $("#create_table_name").val("");
   $("#create_table_modal .create-table-error").hide().text("");
 
-  $("#create_table_modal .create-table-columns tbody").html("").append(createTableColumnRow());
+  $("#create_table_modal .create-table-columns").html("").append(createTableColumnRow());
+  updateCreateTablePreview();
 
-  $("#create_table_modal").show();
+  showModal("#create_table_modal");
   $("#create_table_name").focus();
+}
+
+function closeCreateTable() {
+  hideModal("#create_table_modal");
+}
+
+function showCreateTableError(message) {
+  $("#create_table_modal .create-table-error").text(message).show();
 }
 
 function quoteIdent(name) {
   return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
-function buildCreateTableSQL() {
+function readCreateTableColumns() {
+  var cols = [];
+  $("#create_table_modal .column-row").each(function() {
+    cols.push({
+      name:    $.trim($(this).find(".col-name").val()),
+      type:    $.trim($(this).find(".col-type").val()) || "text",
+      notnull: $(this).find(".col-notnull").hasClass("active"),
+      pk:      $(this).find(".col-pk").hasClass("active"),
+      def:     $.trim($(this).find(".col-default").val())
+    });
+  });
+  return cols;
+}
+
+// Build the CREATE TABLE statement. With forPreview=true, validation is
+// skipped and placeholders are used so the live preview always renders.
+function composeCreateTableSQL(forPreview) {
   var schema = $.trim($("#create_table_schema").val()) || "public";
   var name   = $.trim($("#create_table_name").val());
 
-  if (!name) {
-    throw new Error(t("Table name is required"));
+  var cols = readCreateTableColumns().filter(function(c) { return c.name; });
+
+  if (!forPreview) {
+    if (!name) throw new Error(t("Table name is required"));
+    if (cols.length === 0) throw new Error(t("Add at least one named column"));
   }
 
-  var defs = [];
-  var pks  = [];
-
-  $("#create_table_modal .column-row").each(function() {
-    var cname = $.trim($(this).find(".col-name").val());
-    if (!cname) return;
-
-    var ctype = $.trim($(this).find(".col-type").val()) || "text";
-    var def   = quoteIdent(cname) + " " + ctype;
-
-    if ($(this).find(".col-notnull").is(":checked")) {
-      def += " NOT NULL";
-    }
-
-    var defVal = $.trim($(this).find(".col-default").val());
-    if (defVal) {
-      def += " DEFAULT " + defVal;
-    }
-
-    defs.push(def);
-
-    if ($(this).find(".col-pk").is(":checked")) {
-      pks.push(quoteIdent(cname));
-    }
+  var defs = cols.map(function(c) {
+    var def = quoteIdent(c.name) + " " + c.type;
+    if (c.notnull) def += " NOT NULL";
+    if (c.def)     def += " DEFAULT " + c.def;
+    return def;
   });
 
-  if (defs.length == 0) {
-    throw new Error(t("Add at least one named column"));
-  }
-
+  var pks = cols.filter(function(c) { return c.pk; }).map(function(c) { return quoteIdent(c.name); });
   if (pks.length > 0) {
     defs.push("PRIMARY KEY (" + pks.join(", ") + ")");
   }
 
-  return "CREATE TABLE " + quoteIdent(schema) + "." + quoteIdent(name) +
-    " (\n  " + defs.join(",\n  ") + "\n)";
+  if (defs.length === 0) {
+    defs.push("-- add a column");
+  }
+
+  return "CREATE TABLE " + quoteIdent(schema) + "." + quoteIdent(name || "table_name") +
+    " (\n  " + defs.join(",\n  ") + "\n);";
+}
+
+function updateCreateTablePreview() {
+  $("#create_table_modal .preview-sql").text(composeCreateTableSQL(true));
 }
 
 function submitCreateTable() {
   var sql;
   try {
-    sql = buildCreateTableSQL();
+    sql = composeCreateTableSQL(false);
   }
   catch (err) {
-    $("#create_table_modal .create-table-error").text(err.message).show();
+    showCreateTableError(err.message);
     return;
   }
 
   executeQuery(sql, function(data) {
     if (data.error) {
-      $("#create_table_modal .create-table-error").text(data.error).show();
+      showCreateTableError(data.error);
       return;
     }
-    $("#create_table_modal").hide();
+    closeCreateTable();
     loadSchemas();
   });
 }
@@ -1981,7 +2009,7 @@ $(document).ready(function() {
   });
 
   $("#row_editor_modal").on("click", ".row-editor-cancel, .row-editor-close", function() {
-    $("#row_editor_modal").hide();
+    hideModal("#row_editor_modal");
   });
 
   $("#results").on("click", "th", function(e) {
@@ -2003,22 +2031,48 @@ $(document).ready(function() {
   });
 
   $("#create_table_modal").on("click", ".add-column", function() {
-    $("#create_table_modal .create-table-columns tbody").append(createTableColumnRow());
+    var row = createTableColumnRow();
+    $("#create_table_modal .create-table-columns").append(row);
+    row.find(".col-name").focus();
+    updateCreateTablePreview();
   });
 
   $("#create_table_modal").on("click", ".col-remove", function() {
     if ($("#create_table_modal .column-row").length > 1) {
       $(this).closest(".column-row").remove();
+      updateCreateTablePreview();
+    }
+  });
+
+  // Toggle the PK / NOT NULL pills
+  $("#create_table_modal").on("click", ".col-pill", function() {
+    $(this).toggleClass("active");
+    updateCreateTablePreview();
+  });
+
+  // Live SQL preview as the user types
+  $("#create_table_modal").on("input", "input", updateCreateTablePreview);
+
+  // Enter in a column name adds another column
+  $("#create_table_modal").on("keydown", ".col-name", function(e) {
+    if (e.keyCode === 13) {
+      e.preventDefault();
+      $("#create_table_modal .add-column").click();
     }
   });
 
   $("#create_table_modal").on("click", ".create-table-cancel, .create-table-close", function() {
-    $("#create_table_modal").hide();
+    closeCreateTable();
   });
 
-  $("#create_table_form").on("submit", function(e) {
-    e.preventDefault();
+  $("#create_table_modal").on("click", ".create-table-submit", function() {
     submitCreateTable();
+  });
+
+  // Clicking the dimmed backdrop closes any open modal
+  $("#modal_overlay").on("click", function() {
+    $(".pg-modal.pg-open").removeClass("pg-open");
+    $(this).hide();
   });
 
   $("#rows_filter").on("submit", function(e) {
