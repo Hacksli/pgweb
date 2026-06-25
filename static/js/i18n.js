@@ -56,6 +56,8 @@ var I18n = (function() {
       // --- Authorization notice ---
       "auth_required_notice":
         "Потрібна авторизація. Відкрийте цю сторінку за дійсним посиланням доступу.",
+      "You have been disconnected. You can now close this tab.":
+        "Ви відключилися. Тепер можна закрити цю вкладку.",
 
       // --- Cell content modal ---
       "Cell Content": "Вміст комірки",

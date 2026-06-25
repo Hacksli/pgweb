@@ -1135,6 +1135,17 @@ function addShortcutTooltips() {
   }
 }
 
+// Shown after a manual disconnect when the browser will not let the tab close
+// itself. Replaces the app with a notice that the tab can be closed.
+function showDisconnectedNotice() {
+  $("#main").hide();
+
+  var notice = $('<div class="connection-settings"><div class="alert alert-warning"></div></div>');
+  notice.find(".alert").text(t("You have been disconnected. You can now close this tab."));
+
+  $("#connection_window").html(notice).show();
+}
+
 function showConnectionSettings() {
   $("#connection_window").show();
   initConnectionWindow();
@@ -1776,9 +1787,13 @@ $(document).ready(function() {
     if (!confirm(t("Are you sure you want to disconnect?"))) return;
 
     disconnect(function() {
-      showConnectionSettings();
       resetTable();
-      $("#close_connection_window").hide();
+
+      // Try to auto-close the tab. Browsers only allow this for tabs that were
+      // opened by a script, so for a normally-navigated tab this is a no-op and
+      // we fall through to a notice telling the user they can close it.
+      window.close();
+      showDisconnectedNotice();
     });
   });
 
