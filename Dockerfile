@@ -49,4 +49,6 @@ RUN useradd --uid 1000 --no-create-home --shell /bin/false pgweb
 USER pgweb
 
 EXPOSE 8081
-ENTRYPOINT ["/usr/bin/pgweb", "--bind=0.0.0.0", "--listen=8081"]
+# --sessions: required for token-based API auth (per-token DB sessions)
+# --cors:     send CORS headers so the API can be called from other origins
+ENTRYPOINT ["/usr/bin/pgweb", "--bind=0.0.0.0", "--listen=8081", "--sessions", "--cors"]
