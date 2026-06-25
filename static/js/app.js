@@ -486,6 +486,26 @@ function buildTable(results, sortColumn, sortOrder, options) {
   }
 }
 
+var validTabs = [
+  "table_content", "table_structure", "table_indexes", "table_constraints",
+  "table_query", "table_history", "table_activity", "table_connection"
+];
+
+// Read the active tab from the URL hash, defaulting to the query tab
+function getTabFromUrl() {
+  var tab = window.location.hash.replace(/^#/, "");
+  return validTabs.indexOf(tab) >= 0 ? tab : "table_query";
+}
+
+// Persist the active tab into the URL hash (without adding a history entry)
+function setTabInUrl(id) {
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState(null, "", "#" + id);
+  } else {
+    window.location.hash = id;
+  }
+}
+
 function setCurrentTab(id) {
   // Pagination should only be visible on rows tab
   if (id != "table_content") {
@@ -495,8 +515,26 @@ function setCurrentTab(id) {
   $("#nav ul li.selected").removeClass("selected");
   $("#" + id).addClass("selected");
 
-  // Persist tab selection into the session storage
-  sessionStorage.setItem("tab", id);
+  // Persist tab selection into the URL
+  setTabInUrl(id);
+}
+
+// Open the tab indicated by the URL on initial load. Table-dependent tabs need
+// a selected object, so they fall back to the query tab until one is chosen.
+function restoreTabFromUrl() {
+  switch (getTabFromUrl()) {
+    case "table_history":
+      showQueryHistory();
+      break;
+    case "table_activity":
+      showActivityPanel();
+      break;
+    case "table_connection":
+      showConnectionPanel();
+      break;
+    default:
+      showQueryPanel();
+  }
 }
 
 function showQueryHistory() {
@@ -1575,13 +1613,15 @@ $(document).ready(function() {
     $(".current-page").data("page", 1);
     $(".filters select, .filters input").val("");
 
+    var targetTab = getTabFromUrl();
     if (currentObject.type == "function") {
-      sessionStorage.setItem("tab", "table_structure");
+      // Functions only expose a definition (structure) view
+      targetTab = "table_structure";
     } else {
       showTableInfo();
     }
 
-    switch(sessionStorage.getItem("tab")) {
+    switch(targetTab) {
       case "table_content":
         showTableContent();
         break;
@@ -1892,6 +1932,9 @@ $(document).ready(function() {
 
       $("#current_database").text(resp.current_database);
       $("#main").show();
+
+      // Open the tab requested in the URL (defaults to the query tab)
+      restoreTabFromUrl();
 
       if (!appFeatures.session_lock) {
         $(".connection-actions").show();
