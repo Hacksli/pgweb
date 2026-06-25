@@ -78,11 +78,11 @@ function apiCall(method, path, params, cb) {
       switch(status) {
         case "error":
           if (xhr.readyState == 0) { // 0 = UNSENT
-            showErrorBanner("Sorry, something went wrong with your request. Refresh the page and try again!");
+            showErrorBanner(t("Sorry, something went wrong with your request. Refresh the page and try again!"));
           }
           break;
         case "timeout":
-          return cb({ error: "Query timeout after " + timeout + "s" });
+          return cb({ error: t("Query timeout after {n}s", { n: timeout }) });
       }
 
       var responseText;
@@ -90,7 +90,7 @@ function apiCall(method, path, params, cb) {
         responseText = jQuery.parseJSON(xhr.responseText);
       }
       catch {
-        responseText = { error: "Failed to parse the JSON response." };
+        responseText = { error: t("Failed to parse the JSON response.") };
       }
       cb(responseText);
     }
@@ -136,11 +136,11 @@ function buildSchemaSection(name, objects) {
   var section = "";
 
   var titles = {
-    "table":             "Tables",
-    "view":              "Views",
-    "materialized_view": "Materialized Views",
-    "function":          "Functions",
-    "sequence":          "Sequences"
+    "table":             t("Tables"),
+    "view":              t("Views"),
+    "materialized_view": t("Materialized Views"),
+    "function":          t("Functions"),
+    "sequence":          t("Sequences")
   };
 
   var icons = {
@@ -228,13 +228,13 @@ function loadSchemas() {
 
   getSchemas(function(schemasData) {
     if (schemasData.error) {
-      alert("Error while fetching schemas: " + schemasData.error);
+      alert(t("Error while fetching schemas: {error}", { error: schemasData.error }));
       return;
     }
 
     getObjects(function(data) {
       if (data.error) {
-        alert("Error while fetching database objects: " + data.error);
+        alert(t("Error while fetching database objects: {error}", { error: data.error }));
         return;
       }
 
@@ -310,7 +310,7 @@ function resetTable() {
 
 function performTableAction(table, action, el) {
   if (action == "truncate" || action == "delete") {
-    var message = "Are you sure you want to " + action + " table " + table + " ?";
+    var message = t("Are you sure you want to {action} table {table} ?", { action: t(action), table: table });
     if (!confirm(message)) return;
   }
 
@@ -352,7 +352,7 @@ function performTableAction(table, action, el) {
 
 function performViewAction(view, action, el) {
   if (action == "delete") {
-    var message = "Are you sure you want to " + action + " view " + view + " ?";
+    var message = t("Are you sure you want to {action} view {view} ?", { action: t(action), view: view });
     if (!confirm(message)) return;
   }
 
@@ -397,7 +397,7 @@ function performViewAction(view, action, el) {
 
 function performRowAction(action, value) {
   if (action == "stop_query") {
-    if (!confirm("Are you sure you want to stop the query?")) return;
+    if (!confirm(t("Are you sure you want to stop the query?"))) return;
     executeQuery("SELECT pg_cancel_backend(" + value + ");", function(data) {
       if (data.error) alert(data.error);
       setTimeout(showActivityPanel, 1000);
@@ -424,15 +424,15 @@ function buildTable(results, sortColumn, sortOrder, options) {
 
   if (results.error) {
     $("#results_header").html("");
-    $("#results_body").html("<tr><td>ERROR: " + results.error + "</tr></tr>");
+    $("#results_body").html("<tr><td>" + t("ERROR:") + " " + results.error + "</tr></tr>");
     return;
   }
 
   if (results.rows.length == 0) {
     $("#results_header").html("");
-    $("#results_body").html("<tr><td>No records found</td></tr>");
+    $("#results_body").html("<tr><td>" + t("No records found") + "</td></tr>");
     if (results.stats) {
-      $("#result-rows-count").html(results.stats.query_duration_ms + " ms");
+      $("#result-rows-count").html(results.stats.query_duration_ms + " " + t("ms"));
     } else {
       $("#result-rows-count").html("");
     }
@@ -480,9 +480,9 @@ function buildTable(results, sortColumn, sortOrder, options) {
 
   // Show number of rows rendered on the page
   if (results.stats) {
-    $("#result-rows-count").html(results.stats.rows_count + " rows in " + results.stats.query_duration_ms + " ms");
+    $("#result-rows-count").html(t("{rows} rows in {ms} ms", { rows: results.stats.rows_count, ms: results.stats.query_duration_ms }));
   } else {
-    $("#result-rows-count").html(results.rows.length + " rows");
+    $("#result-rows-count").html(t("{rows} rows", { rows: results.rows.length }));
   }
 }
 
@@ -520,7 +520,7 @@ function showTableIndexes() {
   var name = getCurrentObject().name;
 
   if (name.length == 0) {
-    alert("Please select a table!");
+    alert(t("Please select a table!"));
     return;
   }
 
@@ -538,7 +538,7 @@ function showTableConstraints() {
   var name = getCurrentObject().name;
 
   if (name.length == 0) {
-    alert("Please select a table!");
+    alert(t("Please select a table!"));
     return;
   }
 
@@ -556,7 +556,7 @@ function showTableInfo() {
   var name = getCurrentObject().name;
 
   if (name.length == 0) {
-    alert("Please select a table!");
+    alert(t("Please select a table!"));
     return;
   }
 
@@ -566,7 +566,7 @@ function showTableInfo() {
     $("#table_data_size").text(data.data_size);
     $("#table_index_size").text(data.index_size);
     $("#table_rows_count").text(data.rows_count);
-    $("#table_encoding").text("Unknown");
+    $("#table_encoding").text(t("Unknown"));
   });
 
   buildTableFilters(name, getCurrentObject().type);
@@ -575,7 +575,7 @@ function showTableInfo() {
 function updatePaginator(pagination) {
   if (!pagination) {
     $(".current-page").data("page", 1).data("pages", 1);
-    $("button.page").text("1 of 1");
+    $("button.page").text(t("{page} of {pages}", { page: 1, pages: 1 }));
     $(".prev-page, .next-page").prop("disabled", "disabled");
     return;
   }
@@ -600,19 +600,19 @@ function updatePaginator(pagination) {
 
   $("#total_records").text(pagination.rows_count);
   if (pagination.pages_count == 0) pagination.pages_count = 1;
-  $("button.page").text(pagination.page + " of " + pagination.pages_count);
+  $("button.page").text(t("{page} of {pages}", { page: pagination.page, pages: pagination.pages_count }));
 }
 
 function showTableContent(sortColumn, sortOrder) {
   var name = getCurrentObject().name;
 
   if (name.length == 0) {
-    alert("Please select a table!");
+    alert(t("Please select a table!"));
     return;
   }
 
   if (getCurrentObject().type == "function") {
-    alert("Cant view rows for a function");
+    alert(t("Cant view rows for a function"));
     return;
   }
 
@@ -694,7 +694,7 @@ function showTableStructure() {
   var name = getCurrentObject().name;
 
   if (name.length == 0) {
-    alert("Please select a table!");
+    alert(t("Please select a table!"));
     return;
   }
 
@@ -718,12 +718,12 @@ function showTableStructure() {
 
 function showViewDefinition(viewName, viewDefintion) {
   setCurrentTab("table_structure");
-  renderResultsView("View definition for: <strong>" + viewName + "</strong>", viewDefintion);
+  renderResultsView(t("View definition for:") + " <strong>" + viewName + "</strong>", viewDefintion);
 }
 
 function showFunctionDefinition(functionName, definition) {
   setCurrentTab("table_structure");
-  renderResultsView("Function definition for: <strong>" + functionName + "</strong>", definition)
+  renderResultsView(t("Function definition for:") + " <strong>" + functionName + "</strong>", definition)
 }
 
 function renderResultsView(title, content) {
@@ -781,7 +781,7 @@ function showActivityPanel() {
   var options = {
     action: {
       name: "stop_query",
-      title: "stop",
+      title: t("stop"),
       data: "pid",
       style: "danger"
     }
@@ -1015,7 +1015,7 @@ function buildTableFilters(name, type) {
       $("#pagination .filters").show();
     }
 
-    $("#pagination select.column").html("<option value='' selected>Select column</option>");
+    $("#pagination select.column").html("<option value='' selected>" + t("Select column") + "</option>");
 
     for (var i = 0; i < data.rows.length; i++) {
       var row = data.rows[i];
@@ -1088,12 +1088,12 @@ function initEditor() {
 
 function addShortcutTooltips() {
   if (navigator.userAgent.indexOf("OS X") > 0) {
-    $("#run").attr("title", "Shortcut: ⌘+Enter");
-    $("#explain").attr("title", "Shortcut: ⌘+E");
+    $("#run").attr("title", t("Shortcut: {keys}", { keys: "⌘+Enter" }));
+    $("#explain").attr("title", t("Shortcut: {keys}", { keys: "⌘+E" }));
   }
   else {
-    $("#run").attr("title", "Shortcut: Ctrl+Enter");
-    $("#explain").attr("title", "Shortcut: Ctrl+E");
+    $("#run").attr("title", t("Shortcut: {keys}", { keys: "Ctrl+Enter" }));
+    $("#explain").attr("title", t("Shortcut: {keys}", { keys: "Ctrl+E" }));
   }
 }
 
@@ -1102,7 +1102,7 @@ function getLatestReleaseInfo(current) {
   try {
     $.get("https://api.github.com/repos/sosedoff/pgweb/releases/latest", function(release) {
       if (release.name != current.version) {
-        var message = "Update available. Check out " + release.tag_name + " on <a target='_blank' href='" + release.html_url + "'>Github</a>";
+        var message = t("Update available. Check out {tag} on {github}", { tag: release.tag_name, github: "<a target='_blank' href='" + release.html_url + "'>Github</a>" });
         $(".connection-settings .update").html(message).fadeIn();
       }
     });
@@ -1135,7 +1135,7 @@ function showConnectionSettings() {
       $("#connection_bookmarks").html("");
 
       // Add blank option
-      $("<option value=''>Select a bookmarked database to connect to</option>").appendTo("#connection_bookmarks");
+      $("<option value=''>" + t("Select a bookmarked database to connect to") + "</option>").appendTo("#connection_bookmarks");
 
       // Add all available bookmarks
       for (key of data) {
@@ -1146,7 +1146,7 @@ function showConnectionSettings() {
     }
     else {
       if (appFeatures.bookmarks_only) {
-        $("#connection_error").html("Running in <b>bookmarks-only</b> mode but <b>NO</b> bookmarks configured.").show();
+        $("#connection_error").html(t("Running in <b>bookmarks-only</b> mode but <b>NO</b> bookmarks configured.")).show();
         $(".open-connection").hide();
       } else {
         $(".bookmarks").hide();
@@ -1651,7 +1651,7 @@ $(document).ready(function() {
     var query  = $.trim($(this).find("input").val());
 
     if (filter && filterOptions[filter].indexOf("DATA") > 0 && query == "") {
-      alert("Please specify filter query");
+      alert(t("Please specify filter query"));
       return
     }
 
@@ -1659,7 +1659,7 @@ $(document).ready(function() {
   });
 
   $(".change-limit").on("click", function() {
-    var limit = prompt("Please specify a new rows limit", getRowsLimit());
+    var limit = prompt(t("Please specify a new rows limit"), getRowsLimit());
 
     if (limit && limit >= 1) {
       $(".current-page").data("page", 1);
@@ -1753,7 +1753,7 @@ $(document).ready(function() {
   });
 
   $("#close_connection").on("click", function() {
-    if (!confirm("Are you sure you want to disconnect?")) return;
+    if (!confirm(t("Are you sure you want to disconnect?"))) return;
 
     disconnect(function() {
       showConnectionSettings();
@@ -1845,10 +1845,10 @@ $(document).ready(function() {
     }
 
     $("#connection_error").hide();
-    button.prop("disabled", true).text("Please wait...");
+    button.prop("disabled", true).text(t("Please wait..."));
 
     apiCall("post", "/connect", params, function(resp) {
-      button.prop("disabled", false).text("Connect");
+      button.prop("disabled", false).text(t("Connect"));
 
       if (resp.error) {
         connected = false;
@@ -1881,7 +1881,7 @@ $(document).ready(function() {
 
   getInfo(function(resp) {
     if (resp.error) {
-      alert("Unable to fetch app info: " + resp.error + ". Please reload the browser page.");
+      alert(t("Unable to fetch app info: {error}. Please reload the browser page.", { error: resp.error }));
       return;
     }
 
