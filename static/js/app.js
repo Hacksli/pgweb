@@ -1872,6 +1872,16 @@ $(document).ready(function() {
 
   // Set session from the url
   var reqUrl = new URL(window.location);
+
+  // Exchange an access token (?token=...) for an authenticated session by
+  // redirecting to the server-side token endpoint, which connects and
+  // redirects back with a ?session=... parameter.
+  var accessToken = reqUrl.searchParams.get("token");
+  if (accessToken && accessToken != "") {
+    window.location.replace("token/" + encodeURIComponent(accessToken));
+    return;
+  }
+
   var sessionId = reqUrl.searchParams.get("session");
 
   if (sessionId && sessionId != "") {

@@ -21,6 +21,7 @@ func SetupRoutes(router *gin.Engine) {
 	root.GET("/", gin.WrapH(GetHome(command.Opts.Prefix)))
 	root.GET("/static/*path", gin.WrapH(GetAssets(command.Opts.Prefix)))
 	root.GET("/connect/:resource", ConnectWithBackend)
+	root.GET("/token/:token", ConnectWithToken)
 
 	api := root.Group("/api")
 	SetupMiddlewares(api)
@@ -31,6 +32,7 @@ func SetupRoutes(router *gin.Engine) {
 
 	api.GET("/info", GetInfo)
 	api.POST("/connect", Connect)
+	api.POST("/token", CreateToken)
 	api.POST("/disconnect", Disconnect)
 	api.POST("/switchdb", SwitchDb)
 	api.GET("/databases", GetDatabases)

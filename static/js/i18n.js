@@ -53,6 +53,10 @@ var I18n = (function() {
       "rows":                        "рядків",
       "Select column":               "Оберіть стовпець",
 
+      // --- Authorization notice ---
+      "auth_required_notice":
+        "Потрібна авторизація. Відкрийте цю сторінку за дійсним посиланням доступу.",
+
       // --- Cell content modal ---
       "Cell Content": "Вміст комірки",
 

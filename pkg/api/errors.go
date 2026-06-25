@@ -13,4 +13,5 @@ var (
 	errURLRequired          = errors.New("URL parameter is required")
 	errQueryRequired        = errors.New("Query parameter is required")
 	errDatabaseNameRequired = errors.New("Database name is required")
+	errTokenInvalid         = errors.New("Access token is invalid or expired")
 )

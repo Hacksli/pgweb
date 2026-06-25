@@ -30,6 +30,7 @@ var (
 		"/api/sessions":  true,
 		"/api/info":      true,
 		"/api/connect":   true,
+		"/api/token":     true,
 		"/api/bookmarks": true,
 		"/api/history":   true,
 	}
