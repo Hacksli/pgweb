@@ -9,14 +9,18 @@ ENV CGO_ENABLED=${CGO_ENABLED}
 
 WORKDIR /build
 
-RUN git config --global --add safe.directory /build
 COPY go.mod go.sum ./
 RUN go mod download
 COPY Makefile main.go ./
 COPY static/ static/
 COPY pkg/ pkg/
-COPY .git/ .
-RUN make build
+
+# The commit SHA is injected via a build arg so the build does not require the
+# .git directory in the build context (which many CI/blue-green pipelines
+# strip out). Leave empty to omit git stamping; build time and Go version are
+# still stamped automatically since they don't depend on git.
+ARG GIT_COMMIT=
+RUN make build GIT_COMMIT="${GIT_COMMIT}"
 
 # ------------------------------------------------------------------------------
 # Fetch signing key
