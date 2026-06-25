@@ -873,6 +873,33 @@
   color: #aab;
 }
 
+.row-editor-field .row-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pg-modal select.row-input,
+.pg-modal input.row-input {
+  height: 32px;
+  border: 1px solid #d6dae0;
+  border-radius: 6px;
+  padding: 6px 9px;
+  font-size: 12px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: #fff;
+  outline: none;
+}
+
+.pg-modal .row-input:focus {
+  border-color: #007aff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.pg-modal .row-input:disabled {
+  background: #f3f4f6;
+  color: #aab;
+}
+
 .row-editor-null {
   display: inline-flex;
   align-items: center;

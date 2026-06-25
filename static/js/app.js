@@ -14,6 +14,7 @@ var currentTableName    = null;
 var currentTableColumns = [];
 var currentTableRows    = [];
 var currentTablePK      = [];
+var currentTableTypes   = {};
 var rowEditorMode       = null; // "add" | "edit" | "duplicate"
 var rowEditorIndex      = null;
 
@@ -731,6 +732,10 @@ function showTableContent(sortColumn, sortOrder) {
     currentTablePK = (keys && !keys.error) ? keys : [];
     var canEditRows = isTable && currentTablePK.length > 0;
 
+    // Load column types so the row editor can render type-aware inputs
+    getTableStructure(name, { type: getCurrentObject().type }, function(structure) {
+      currentTableTypes = buildColumnTypeMap(structure);
+
     getTableRows(name, opts, function(data) {
       $("#input").hide();
       $("#body").prop("class", "with-pagination");
@@ -747,6 +752,7 @@ function showTableContent(sortColumn, sortOrder) {
       $("#pagination .add-row").toggle(isTable);
 
       $("#results").data("mode", "browse").data("table", name);
+    });
     });
   });
 }
@@ -1641,6 +1647,73 @@ function rowValueToString(val) {
   return String(val);
 }
 
+// Build a column_name -> data_type map from a table structure result
+function buildColumnTypeMap(structure) {
+  var map = {};
+  if (!structure || !structure.columns || !structure.rows) return map;
+
+  var ci = structure.columns.indexOf("column_name");
+  var ti = structure.columns.indexOf("data_type");
+  if (ci < 0 || ti < 0) return map;
+
+  structure.rows.forEach(function(r) {
+    map[r[ci]] = String(r[ti] == null ? "" : r[ti]).toLowerCase();
+  });
+  return map;
+}
+
+// Map a Postgres data_type (from information_schema) to an input control kind
+function inputKindForType(dataType) {
+  var ty = (dataType || "").toLowerCase();
+  if (ty.indexOf("bool") >= 0) return "bool";
+  if (ty === "date") return "date";
+  if (ty.indexOf("timestamp") >= 0) return "timestamp";
+  if (ty.indexOf("time") >= 0) return "time";
+  if (ty === "json" || ty === "jsonb") return "json";
+  if (ty === "smallint" || ty === "integer") return "number";
+  return "text";
+}
+
+// Build a type-aware input control for a column. Falls back to a text input
+// when a typed value can't be parsed into the control's required format, so
+// the original value is never lost.
+function buildRowInput(kind, strVal) {
+  var ctrl, m;
+
+  switch (kind) {
+    case "bool":
+      ctrl = $("<select class='row-input'></select>");
+      ctrl.append("<option value=''></option><option value='true'>true</option><option value='false'>false</option>");
+      if (strVal === "true" || strVal === "t")  ctrl.val("true");
+      if (strVal === "false" || strVal === "f") ctrl.val("false");
+      return ctrl;
+
+    case "number":
+      return $("<input type='number' step='any' class='row-input'>").val(strVal);
+
+    case "date":
+      m = strVal.match(/^\d{4}-\d{2}-\d{2}/);
+      if (strVal && !m) return $("<input type='text' class='row-input'>").val(strVal);
+      return $("<input type='date' class='row-input'>").val(m ? m[0] : "");
+
+    case "time":
+      m = strVal.match(/\d{2}:\d{2}(:\d{2})?/);
+      if (strVal && !m) return $("<input type='text' class='row-input'>").val(strVal);
+      return $("<input type='time' step='1' class='row-input'>").val(m ? m[0] : "");
+
+    case "timestamp":
+      m = strVal.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(:\d{2})?)/);
+      if (strVal && !m) return $("<input type='text' class='row-input'>").val(strVal);
+      return $("<input type='datetime-local' step='1' class='row-input'>").val(m ? (m[1] + "T" + m[2]) : "");
+
+    case "json":
+      return $("<textarea rows='2' class='row-input'></textarea>").val(strVal);
+
+    default:
+      return $("<textarea rows='1' class='row-input'></textarea>").val(strVal);
+  }
+}
+
 // Build the primary key map (col -> original value) for a browse row
 function rowPrimaryKeyFromIndex(rowIndex) {
   var pk = {};
@@ -1679,35 +1752,40 @@ function openRowEditor(mode, rowIndex) {
       isNull = false;
     }
 
+    var kind = inputKindForType(currentTableTypes[col]);
+
     var field = $(
       "<div class='row-editor-field'>" +
         "<label class='row-editor-name'></label>" +
         "<div class='row-editor-input'>" +
-          "<textarea rows='1' class='form-control'></textarea>" +
           "<label class='row-editor-null'><input type='checkbox' class='null-toggle'> NULL</label>" +
         "</div>" +
       "</div>"
     );
 
-    field.find(".row-editor-name").text(col + (isPk ? " 🔑" : ""));
+    field.find(".row-editor-name")
+      .text(col + (isPk ? " 🔑" : ""))
+      .attr("title", currentTableTypes[col] || "");
 
-    var ta = field.find("textarea").attr("data-col", col).val(strVal);
+    var ctrl = buildRowInput(kind, strVal).attr("data-col", col);
+    field.find(".row-editor-input").prepend(ctrl);
+
     var nullToggle = field.find(".null-toggle");
 
     if (isNull) {
       nullToggle.prop("checked", true);
-      ta.prop("disabled", true);
+      ctrl.prop("disabled", true);
     }
 
     nullToggle.on("change", function() {
-      ta.prop("disabled", $(this).is(":checked"));
+      ctrl.prop("disabled", $(this).is(":checked"));
     });
 
     fields.append(field);
   });
 
   showModal("#row_editor_modal");
-  $("#row_editor_modal textarea").first().focus();
+  $("#row_editor_modal .row-input").first().focus();
 }
 
 // Collect column -> value map from the editor. On insert, empty untouched
@@ -1716,16 +1794,16 @@ function collectRowEditorValues(mode) {
   var values = {};
 
   $("#row_editor_modal .row-editor-field").each(function() {
-    var ta  = $(this).find("textarea");
-    var col = ta.attr("data-col");
+    var ctrl = $(this).find(".row-input");
+    var col  = ctrl.attr("data-col");
 
     if ($(this).find(".null-toggle").is(":checked")) {
       values[col] = null;
       return;
     }
 
-    var val = ta.val();
-    if (mode != "edit" && val === "") {
+    var val = ctrl.val();
+    if (mode != "edit" && (val === "" || val == null)) {
       return; // omit empty column on insert -> use DEFAULT
     }
 
