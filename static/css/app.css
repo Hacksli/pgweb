@@ -679,6 +679,123 @@
   box-shadow: #eee 0 0 5px;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Row editing */
+/* -------------------------------------------------------------------------- */
+
+.row-actions-col {
+  width: 28px;
+  text-align: center;
+}
+
+.row-delete {
+  cursor: pointer;
+  color: #bbb;
+}
+
+.row-delete:hover {
+  color: #d9534f;
+}
+
+#pagination .add-row {
+  margin-left: 8px;
+  vertical-align: top;
+}
+
+#row_editor_modal {
+  display: none;
+  width: 60%;
+  max-width: 720px;
+  position: fixed;
+  top: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border: 1px solid #ccc;
+  box-shadow: #ddd 0 0 20px;
+  z-index: 10000;
+}
+
+#row_editor_modal .title {
+  font-weight: bold;
+  line-height: 24px;
+  background: #f5f5f5;
+  padding: 4px 4px 4px 8px;
+}
+
+#row_editor_modal .actions {
+  float: right;
+}
+
+#row_editor_modal .actions .fa {
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 13px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#row_editor_modal .actions .fa:hover {
+  border-color: #999;
+}
+
+.row-editor-fields {
+  padding: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.row-editor-field {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.row-editor-field .row-editor-name {
+  width: 30%;
+  padding: 6px 8px 0 0;
+  font-weight: 500;
+  word-break: break-word;
+  text-align: right;
+}
+
+.row-editor-field .row-editor-input {
+  width: 70%;
+}
+
+.row-editor-field textarea {
+  width: 100%;
+  resize: vertical;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.row-editor-field textarea:disabled {
+  background: #f0f0f0;
+}
+
+.row-editor-null {
+  display: block;
+  font-weight: normal;
+  font-size: 11px;
+  color: #888;
+  margin: 2px 0 0;
+}
+
+.row-editor-buttons {
+  padding: 8px;
+  border-top: 1px solid #eee;
+  text-align: right;
+}
+
+.row-editor-error {
+  margin: 0 8px;
+}
+
 #error_banner {
   line-height: 30px;
   text-align: center;

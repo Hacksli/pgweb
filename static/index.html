@@ -142,6 +142,7 @@
         <div class="current-page" data-page="1" data-pages="1">
           <span id="total_records"></span> <span data-i18n="rows">rows</span>
         </div>
+        <button type="button" class="btn btn-success btn-sm add-row" style="display: none"><i class="fa fa-plus"></i> <span data-i18n="Add row">Add row</span></button>
       </div>
     </div>
   </div>
@@ -155,6 +156,23 @@
       </div>
     </div>
     <pre class="content"></pre>
+  </div>
+
+  <div id="row_editor_modal">
+    <div class="title">
+      <span class="row-editor-title" data-i18n="Edit row">Edit row</span>
+      <div class="actions">
+        <i class="fa fa-times row-editor-close" data-action="close"></i>
+      </div>
+    </div>
+    <form id="row_editor_form">
+      <div class="row-editor-fields"></div>
+      <div class="row-editor-error alert alert-danger" style="display: none"></div>
+      <div class="row-editor-buttons">
+        <button type="submit" class="btn btn-sm btn-primary row-editor-save" data-i18n="Save">Save</button>
+        <button type="button" class="btn btn-sm btn-default row-editor-cancel" data-i18n="Cancel">Cancel</button>
+      </div>
+    </form>
   </div>
 
   <div id="connection_window">
@@ -214,6 +232,9 @@
       <li><a href="#" data-action="display_value" data-i18n="Display Value">Display Value</a></li>
       <li><a href="#" data-action="copy_value" data-i18n="Copy Value">Copy Value</a></li>
       <li><a href="#" data-action="filter_by_value" data-i18n="Filter Rows By Value">Filter Rows By Value</a></li>
+      <li class="divider"></li>
+      <li><a href="#" data-action="edit_row" data-i18n="Edit row">Edit row</a></li>
+      <li><a href="#" data-action="duplicate_row" data-i18n="Duplicate row">Duplicate row</a></li>
     </ul>
   </div>
   <div id="error_banner"></div>

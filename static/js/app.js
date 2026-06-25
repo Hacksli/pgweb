@@ -9,6 +9,14 @@ var autocompleteObjects = [];
 var inputResizing       = false;
 var inputResizeOffset   = null;
 
+// Current browse-mode table state, used for row editing
+var currentTableName    = null;
+var currentTableColumns = [];
+var currentTableRows    = [];
+var currentTablePK      = [];
+var rowEditorMode       = null; // "add" | "edit" | "duplicate"
+var rowEditorIndex      = null;
+
 var filterOptions = {
   "equal":      "= 'DATA'",
   "not_equal":  "!= 'DATA'",
@@ -115,6 +123,35 @@ function executeQuery(query, cb)            { apiCall("post", "/query", { query:
 function explainQuery(query, cb)            { apiCall("post", "/explain", { query: query }, cb); }
 function analyzeQuery(query, cb)            { apiCall("post", "/analyze", { query: query }, cb); }
 function disconnect(cb)                     { apiCall("post", "/disconnect", {}, cb); }
+function getTablePrimaryKeys(table, cb)     { apiCall("get", "/tables/" + table + "/keys", {}, cb); }
+
+// apiCallJSON sends a JSON request body (used for row insert/update/delete)
+function apiCallJSON(method, path, body, cb) {
+  $.ajax({
+    url: "api" + path,
+    method: method,
+    contentType: "application/json",
+    data: JSON.stringify(body),
+    headers: {
+      "x-session-id": getSessionId()
+    },
+    success: cb,
+    error: function(xhr) {
+      var resp;
+      try {
+        resp = jQuery.parseJSON(xhr.responseText);
+      }
+      catch {
+        resp = { error: "Request failed" };
+      }
+      cb(resp);
+    }
+  });
+}
+
+function insertTableRow(table, values, cb)     { apiCallJSON("post", "/tables/" + table + "/rows", { values: values }, cb); }
+function updateTableRow(table, pk, values, cb) { apiCallJSON("put", "/tables/" + table + "/rows", { values: values, primary_key: pk }, cb); }
+function deleteTableRow(table, pk, cb)         { apiCallJSON("delete", "/tables/" + table + "/rows", { primary_key: pk }, cb); }
 
 function encodeQuery(query) {
   return Base64.encode(query).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, ".");
@@ -459,7 +496,12 @@ function buildTable(results, sortColumn, sortOrder, options) {
     action.dataColumn = results.columns.indexOf(action.data);
   }
 
-  results.rows.forEach(function(row) {
+  // Trailing column with the per-row delete control
+  if (options.editable) {
+    cols += "<th class='row-actions-col'></th>";
+  }
+
+  results.rows.forEach(function(row, rowIndex) {
     var r = "";
 
     // Add all actual row data here
@@ -472,7 +514,12 @@ function buildTable(results, sortColumn, sortOrder, options) {
       r += "<td><a class='btn btn-xs btn-" + action.style + " row-action' data-action='" + action.name + "' data-value='" + row[action.dataColumn] + "' href='#'>" + action.title + "</a></td>";
     }
 
-    rows += "<tr>" + r + "</tr>";
+    // Add the delete control
+    if (options.editable) {
+      r += "<td class='row-actions-col'><i class='fa fa-trash-o row-delete' title='" + t("Delete row") + "'></i></td>";
+    }
+
+    rows += "<tr data-row-index='" + rowIndex + "'>" + r + "</tr>";
   });
 
   $("#results_header").html(cols);
@@ -677,15 +724,30 @@ function showTableContent(sortColumn, sortOrder) {
     opts["where"] = where;
   }
 
-  getTableRows(name, opts, function(data) {
-    $("#input").hide();
-    $("#body").prop("class", "with-pagination");
+  var isTable = getCurrentObject().type == "table";
 
-    buildTable(data, sortColumn, sortOrder);
-    setCurrentTab("table_content");
-    updatePaginator(data.pagination);
+  // Fetch the primary key first so we know whether rows can be edited/deleted
+  getTablePrimaryKeys(name, function(keys) {
+    currentTablePK = (keys && !keys.error) ? keys : [];
+    var canEditRows = isTable && currentTablePK.length > 0;
 
-    $("#results").data("mode", "browse").data("table", name);
+    getTableRows(name, opts, function(data) {
+      $("#input").hide();
+      $("#body").prop("class", "with-pagination");
+
+      currentTableName    = name;
+      currentTableColumns = data.columns || [];
+      currentTableRows    = data.rows || [];
+
+      buildTable(data, sortColumn, sortOrder, { editable: canEditRows });
+      setCurrentTab("table_content");
+      updatePaginator(data.pagination);
+
+      // The "Add row" button is available for any table (insert needs no PK)
+      $("#pagination .add-row").toggle(isTable);
+
+      $("#results").data("mode", "browse").data("table", name);
+    });
   });
 }
 
@@ -1303,6 +1365,19 @@ function bindTableHeaderMenu() {
           $("select.filter").val("equal");
           $("#table_filter_value").val(colValue);
           $("#rows_filter").submit();
+          break;
+        case "edit_row":
+          if ($("#results").data("mode") != "browse") return;
+          if (currentTablePK.length == 0) {
+            alert(t("This table has no primary key, rows cannot be edited."));
+            return;
+          }
+          openRowEditor("edit", $(context).closest("tr").data("row-index"));
+          break;
+        case "duplicate_row":
+          if ($("#results").data("mode") != "browse") return;
+          openRowEditor("duplicate", $(context).closest("tr").data("row-index"));
+          break;
       }
     }
   });
@@ -1559,6 +1634,127 @@ function bindContentModalEvents() {
   })
 }
 
+// Convert a raw cell value into a string for editing
+function rowValueToString(val) {
+  if (val === null || val === undefined) return "";
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val);
+}
+
+// Build the primary key map (col -> original value) for a browse row
+function rowPrimaryKeyFromIndex(rowIndex) {
+  var pk = {};
+  currentTablePK.forEach(function(col) {
+    var idx = currentTableColumns.indexOf(col);
+    var val = idx >= 0 ? currentTableRows[rowIndex][idx] : null;
+    pk[col] = (val === null || val === undefined) ? null : rowValueToString(val);
+  });
+  return pk;
+}
+
+// Open the row editor modal in add/edit/duplicate mode
+function openRowEditor(mode, rowIndex) {
+  if (!currentTableName) return;
+
+  rowEditorMode  = mode;
+  rowEditorIndex = (rowIndex == null) ? null : rowIndex;
+
+  var titleKey = mode == "add" ? "Add row" : (mode == "duplicate" ? "Duplicate row" : "Edit row");
+  $("#row_editor_modal .row-editor-title").text(t(titleKey));
+  $("#row_editor_modal .row-editor-error").hide().text("");
+
+  var row = (rowIndex != null) ? currentTableRows[rowIndex] : null;
+  var fields = $("#row_editor_modal .row-editor-fields").html("");
+
+  currentTableColumns.forEach(function(col, idx) {
+    var isPk    = currentTablePK.indexOf(col) >= 0;
+    var rawVal  = row ? row[idx] : null;
+    var isNull  = rawVal === null || rawVal === undefined;
+    var strVal  = rowValueToString(rawVal);
+
+    // When duplicating, clear primary key fields so DB defaults (e.g. serials)
+    // can generate fresh values.
+    if (mode == "duplicate" && isPk) {
+      strVal = "";
+      isNull = false;
+    }
+
+    var field = $(
+      "<div class='row-editor-field'>" +
+        "<label class='row-editor-name'></label>" +
+        "<div class='row-editor-input'>" +
+          "<textarea rows='1' class='form-control'></textarea>" +
+          "<label class='row-editor-null'><input type='checkbox' class='null-toggle'> NULL</label>" +
+        "</div>" +
+      "</div>"
+    );
+
+    field.find(".row-editor-name").text(col + (isPk ? " 🔑" : ""));
+
+    var ta = field.find("textarea").attr("data-col", col).val(strVal);
+    var nullToggle = field.find(".null-toggle");
+
+    if (isNull) {
+      nullToggle.prop("checked", true);
+      ta.prop("disabled", true);
+    }
+
+    nullToggle.on("change", function() {
+      ta.prop("disabled", $(this).is(":checked"));
+    });
+
+    fields.append(field);
+  });
+
+  $("#row_editor_modal").show();
+  $("#row_editor_modal textarea").first().focus();
+}
+
+// Collect column -> value map from the editor. On insert, empty untouched
+// fields are omitted so column defaults apply.
+function collectRowEditorValues(mode) {
+  var values = {};
+
+  $("#row_editor_modal .row-editor-field").each(function() {
+    var ta  = $(this).find("textarea");
+    var col = ta.attr("data-col");
+
+    if ($(this).find(".null-toggle").is(":checked")) {
+      values[col] = null;
+      return;
+    }
+
+    var val = ta.val();
+    if (mode != "edit" && val === "") {
+      return; // omit empty column on insert -> use DEFAULT
+    }
+
+    values[col] = val;
+  });
+
+  return values;
+}
+
+function saveRowEditor() {
+  var values = collectRowEditorValues(rowEditorMode);
+
+  var done = function(resp) {
+    if (resp && resp.error) {
+      $("#row_editor_modal .row-editor-error").text(resp.error).show();
+      return;
+    }
+
+    $("#row_editor_modal").hide();
+    showPaginatedTableContent();
+  };
+
+  if (rowEditorMode == "edit") {
+    updateTableRow(currentTableName, rowPrimaryKeyFromIndex(rowEditorIndex), values, done);
+  } else {
+    insertTableRow(currentTableName, values, done);
+  }
+}
+
 $(document).ready(function() {
   bindInputResizeEvents();
   bindContentModalEvents();
@@ -1658,6 +1854,39 @@ $(document).ready(function() {
 
     performRowAction(action, value);
   })
+
+  // Delete a row via the trailing trash control
+  $("#results").on("click", ".row-delete", function(e) {
+    e.stopPropagation();
+
+    var rowIndex = $(this).closest("tr").data("row-index");
+    if (rowIndex == null) return;
+
+    if (!confirm(t("Are you sure you want to delete this row?"))) return;
+
+    deleteTableRow(currentTableName, rowPrimaryKeyFromIndex(rowIndex), function(resp) {
+      if (resp && resp.error) {
+        alert(resp.error);
+        return;
+      }
+      showPaginatedTableContent();
+    });
+  });
+
+  // Add a new row
+  $("#pagination").on("click", ".add-row", function() {
+    openRowEditor("add", null);
+  });
+
+  // Row editor modal actions
+  $("#row_editor_form").on("submit", function(e) {
+    e.preventDefault();
+    saveRowEditor();
+  });
+
+  $("#row_editor_modal").on("click", ".row-editor-cancel, .row-editor-close", function() {
+    $("#row_editor_modal").hide();
+  });
 
   $("#results").on("click", "th", function(e) {
     if (!$("#table_content").hasClass("selected")) return;

@@ -461,6 +461,58 @@ func GetTableInfo(c *gin.Context) {
 	}
 }
 
+// rowEditRequest is the payload for row insert/update/delete operations
+type rowEditRequest struct {
+	Values     map[string]interface{} `json:"values"`
+	PrimaryKey map[string]interface{} `json:"primary_key"`
+}
+
+// GetTablePrimaryKeys renders the primary key column names for a table
+func GetTablePrimaryKeys(c *gin.Context) {
+	keys, err := DB(c).TablePrimaryKeys(c.Params.ByName("table"))
+	if err != nil {
+		badRequest(c, err)
+		return
+	}
+	successResponse(c, keys)
+}
+
+// InsertTableRow inserts a new row into the table
+func InsertTableRow(c *gin.Context) {
+	var req rowEditRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badRequest(c, err)
+		return
+	}
+
+	res, err := DB(c).InsertRow(c.Params.ByName("table"), req.Values)
+	serveResult(c, res, err)
+}
+
+// UpdateTableRow updates a single row identified by its primary key
+func UpdateTableRow(c *gin.Context) {
+	var req rowEditRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badRequest(c, err)
+		return
+	}
+
+	res, err := DB(c).UpdateRow(c.Params.ByName("table"), req.PrimaryKey, req.Values)
+	serveResult(c, res, err)
+}
+
+// DeleteTableRow deletes a single row identified by its primary key
+func DeleteTableRow(c *gin.Context) {
+	var req rowEditRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		badRequest(c, err)
+		return
+	}
+
+	res, err := DB(c).DeleteRow(c.Params.ByName("table"), req.PrimaryKey)
+	serveResult(c, res, err)
+}
+
 // GetHistory renders a list of recent queries
 func GetHistory(c *gin.Context) {
 	successResponse(c, DB(c).History)

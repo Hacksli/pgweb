@@ -35,6 +35,9 @@ var (
 	//go:embed sql/table_schema.sql
 	TableSchema string
 
+	//go:embed sql/table_primary_keys.sql
+	TablePrimaryKeys string
+
 	//go:embed sql/materialized_view.sql
 	MaterializedView string
 

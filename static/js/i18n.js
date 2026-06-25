@@ -62,6 +62,17 @@ var I18n = (function() {
       // --- Cell content modal ---
       "Cell Content": "Вміст комірки",
 
+      // --- Row editing ---
+      "Add row":          "Додати рядок",
+      "Edit row":         "Редагувати рядок",
+      "Duplicate row":    "Дублювати рядок",
+      "Delete row":       "Видалити рядок",
+      "Save":             "Зберегти",
+      "Are you sure you want to delete this row?":
+        "Ви впевнені, що хочете видалити цей рядок?",
+      "This table has no primary key, rows cannot be edited.":
+        "Ця таблиця не має первинного ключа, рядки не можна редагувати.",
+
       // --- Connection window ---
       "Scheme":                  "Схема",
       "Standard":                "Стандартне",
