@@ -902,7 +902,7 @@
 /* -------------------------------------------------------------------------- */
 
 .ace_gutter, .ace_gutter-cell {
-  background: #fff !important;
+  background: #efefef !important;
   color: #bbb;
   font-size: 12px;
 }
