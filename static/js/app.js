@@ -1097,29 +1097,9 @@ function addShortcutTooltips() {
   }
 }
 
-// Get the latest release from Github API
-function getLatestReleaseInfo(current) {
-  try {
-    $.get("https://api.github.com/repos/sosedoff/pgweb/releases/latest", function(release) {
-      if (release.name != current.version) {
-        var message = t("Update available. Check out {tag} on {github}", { tag: release.tag_name, github: "<a target='_blank' href='" + release.html_url + "'>Github</a>" });
-        $(".connection-settings .update").html(message).fadeIn();
-      }
-    });
-  }
-  catch(error) {
-    console.log("Cant get last release from github:", error);
-  }
-}
-
 function showConnectionSettings() {
-  // Show the current postgres version
-  $(".connection-settings .version").text("v" + appInfo.version).show();
   $("#connection_window").show();
   initConnectionWindow();
-
-  // Check github release page for updates
-  getLatestReleaseInfo(appInfo);
 
   getBookmarks(function(data) {
     if (data.error) {
