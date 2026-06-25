@@ -1,20 +1,41 @@
-name: demo deploy
+name: Deploy to Server
 
 on:
   push:
     branches:
       - main
-
-env:
-  FLY_API_TOKEN: ${{ secrets.FLY_TOKEN }}
+  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to Fly
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create project archive
+        run: |
+          zip -r project.zip . -x "*.git*" -x "image/*" -x "image"
+          ls -lh project.zip
+
+      - name: Deploy to server
+        run: |
+          DOMAIN_ARG=""
+          if [ -n "${{ secrets.CUSTOM_DOMAIN }}" ]; then
+            DOMAIN_ARG="-F domain=${{ secrets.CUSTOM_DOMAIN }}"
+          fi
+          curl -X POST \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_TOKEN }}" \
+            -F "file=@project.zip" \
+            -F "deployment_id=${{ secrets.DEPLOYMENT_ID }}" \
+            $DOMAIN_ARG \
+            "https://api.cabinet.developer.skyservice.online/index.php?section=deployments&action=autoRedeploy"
+
+      - name: Deployment status
+        if: success()
+        run: echo "Deployment completed successfully!"
+
+      - name: Deployment failed
+        if: failure()
+        run: echo "Deployment failed!"
