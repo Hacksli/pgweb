@@ -321,6 +321,9 @@ func Run() {
 		}
 	}
 
+	// Start access token cleanup worker (removes tokens once their TTL expires)
+	go api.TokenStore.RunPeriodicCleanup(logger)
+
 	// Start a separate metrics http server. If metrics addr is not provided, we
 	// add the metrics endpoint in the existing application server (see api.go).
 	if options.MetricsEnabled && options.MetricsAddr != "" {
