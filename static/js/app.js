@@ -334,10 +334,26 @@ function getCurrentObject() {
   return currentObject || { name: "", type: "" };
 }
 
+// Display the SQL statement executed by the backend above the results table
+function showExecutedSQL(sql) {
+  if (!sql) {
+    hideExecutedSQL();
+    return;
+  }
+  $("#executed_sql .executed-sql-code").text(sql);
+  $("#executed_sql").show();
+}
+
+function hideExecutedSQL() {
+  $("#executed_sql").hide();
+  $("#executed_sql .executed-sql-code").text("");
+}
+
 function resetTable() {
   $("#results_header").html("");
   $("#results_body").html("");
   $("#results_view").html("").hide();
+  hideExecutedSQL();
 
   $("#results").
     data("mode", "").
@@ -459,6 +475,7 @@ function buildTable(results, sortColumn, sortOrder, options) {
   var action = options.action;
 
   resetTable();
+  showExecutedSQL(results.sql);
 
   if (results.error) {
     $("#results_header").html("");
@@ -1996,6 +2013,14 @@ $(document).ready(function() {
 
   $("#results_view").on("click", ".copy", function() {
     copyToClipboard($(this).parent().text());
+  });
+
+  $("#executed_sql").on("click", ".executed-sql-copy", function() {
+    copyToClipboard($("#executed_sql .executed-sql-code").text());
+  });
+
+  $("#executed_sql").on("click", ".executed-sql-toggle, .executed-sql-label", function() {
+    $("#executed_sql").toggleClass("collapsed");
   });
 
   $("#results").on("click", "tr", function(e) {

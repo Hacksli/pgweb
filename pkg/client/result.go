@@ -46,6 +46,7 @@ type (
 		Columns    []string     `json:"columns"`
 		Rows       []Row        `json:"rows"`
 		Stats      *ResultStats `json:"stats,omitempty"`
+		SQL        string       `json:"sql,omitempty"`
 	}
 
 	ResultStats struct {

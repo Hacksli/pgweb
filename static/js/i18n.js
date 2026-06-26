@@ -81,6 +81,8 @@ var I18n = (function() {
       "Table name":     "Назва таблиці",
       "Columns":        "Стовпці",
       "SQL preview":    "Попередній перегляд SQL",
+      "Copy SQL":       "Копіювати SQL",
+      "Toggle SQL":     "Згорнути / розгорнути SQL",
       "Column":         "Стовпець",
       "Type":           "Тип",
       "Default":        "За замовчуванням",

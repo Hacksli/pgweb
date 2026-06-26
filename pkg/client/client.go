@@ -466,6 +466,7 @@ func (client *Client) exec(query string, args ...interface{}) (*Result, error) {
 		Rows: []Row{
 			{affected},
 		},
+		SQL: query,
 		Stats: &ResultStats{
 			ColumnsCount:    1,
 			RowsCount:       1,
@@ -533,6 +534,7 @@ func (client *Client) query(query string, args ...interface{}) (*Result, error) 
 	result := Result{
 		Columns: cols,
 		Rows:    []Row{},
+		SQL:     query,
 	}
 
 	for rows.Next() {

@@ -1057,6 +1057,71 @@
   margin: 0;
 }
 
+/* -------------------------------------------------------------------------- */
+/* Executed SQL bar (shown above results) */
+/* -------------------------------------------------------------------------- */
+
+#executed_sql {
+  margin-bottom: 8px;
+}
+
+.executed-sql-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1f2430;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.executed-sql-bar .executed-sql-label {
+  flex: none;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #7f8794;
+  cursor: pointer;
+}
+
+.executed-sql-bar .executed-sql-code {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border: 0 none;
+  background: transparent;
+  color: #e6edf3;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  max-height: 120px;
+  overflow: auto;
+}
+
+.executed-sql-bar .executed-sql-copy,
+.executed-sql-bar .executed-sql-toggle {
+  flex: none;
+  cursor: pointer;
+  color: #9aa0aa;
+  padding: 2px 4px;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+
+.executed-sql-bar .executed-sql-copy:hover,
+.executed-sql-bar .executed-sql-toggle:hover {
+  color: #fff;
+}
+
+#executed_sql.collapsed .executed-sql-code {
+  display: none;
+}
+
+#executed_sql.collapsed .executed-sql-toggle {
+  transform: rotate(-90deg);
+}
+
 #error_banner {
   line-height: 30px;
   text-align: center;
